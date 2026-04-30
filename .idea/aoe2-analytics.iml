@@ -6,5 +6,7 @@
     </content>
     <orderEntry type="jdk" jdkName="Python 3.11 (aoe2-analytics)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="Milibot_Files" />
+    <orderEntry type="module" module-name="ai" />
   </component>
 </module>

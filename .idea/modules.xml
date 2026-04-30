@@ -2,6 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../../Steam/steamapps/common/AoE2DE/resources/_common/ai/Milibot_Files/.idea/Milibot_Files.iml" filepath="$PROJECT_DIR$/../../Steam/steamapps/common/AoE2DE/resources/_common/ai/Milibot_Files/.idea/Milibot_Files.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../Steam/steamapps/common/AoE2DE/resources/_common/ai/.idea/ai.iml" filepath="$PROJECT_DIR$/../../Steam/steamapps/common/AoE2DE/resources/_common/ai/.idea/ai.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/aoe2-analytics.iml" filepath="$PROJECT_DIR$/.idea/aoe2-analytics.iml" />
     </modules>
   </component>
