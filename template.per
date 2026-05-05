@@ -1,0 +1,153 @@
+; MILI-BOT EVOLUTION 9.1 (Poprawka DNA - Bezpieczne Stałe)
+
+; =========================================================
+; 0. ODCZYT GENÓW Z PYTHONA (MAPOWANIE NA ZMIENNE)
+; =========================================================
+(defconst f-market {{BUILD_MARKET}})
+(defconst f-blacksmith {{BUILD_BLACKSMITH}})
+(defconst f-archery {{BUILD_ARCHERY}})
+(defconst f-stable {{BUILD_STABLE}})
+(defconst f-tower {{BUILD_TOWER}})
+
+(defconst f-loom {{TECH_LOOM}})
+(defconst f-wheelbarrow {{TECH_WHEELBARROW}})
+(defconst f-doubleaxe {{TECH_DOUBLE_AXE}})
+(defconst f-horsecollar {{TECH_HORSE_COLLAR}})
+(defconst f-goldmining {{TECH_GOLD_MINING}})
+(defconst f-fletching {{TECH_FLETCHING}})
+(defconst f-paddedarcher {{TECH_PADDED_ARCHER}})
+(defconst f-forging {{TECH_FORGING}})
+(defconst f-scalemail {{TECH_SCALE_MAIL}})
+(defconst f-bloodlines {{TECH_BLOODLINES}})
+
+; =========================================================
+; 1. INICJALIZACJA STRATEGII
+; =========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-number-explore-groups 1)
+    (set-strategic-number sn-total-number-explorers 1)
+    (set-strategic-number sn-maximum-town-size {{TOWN_SIZE}})
+
+    (set-strategic-number sn-wood-gatherer-percentage {{WOOD_PERCENT}})
+    (set-strategic-number sn-gold-gatherer-percentage {{GOLD_PERCENT}})
+    (set-strategic-number sn-stone-gatherer-percentage {{STONE_PERCENT}})
+    (set-strategic-number sn-food-gatherer-percentage {{FOOD_PERCENT}})
+
+    (set-strategic-number sn-enable-boar-hunting {{BOAR_HUNTING}})
+    (set-strategic-number sn-minimum-boar-hunt-group-size {{BOAR_HUNTERS}})
+    (set-strategic-number sn-minimum-boar-lure-group-size 1)
+
+    (set-strategic-number sn-percent-attack-soldiers {{ATTACK_PERCENT}})
+    (disable-self)
+)
+
+; =========================================================
+; 2. TWORZENIE WIEŚNIAKÓW I ERY
+; =========================================================
+(defrule
+    (current-age == dark-age)
+    (unit-type-count-total villager < {{FEUDAL_VILLS}})
+    (can-train villager)
+=>
+    (train villager)
+)
+(defrule
+    (current-age == feudal-age)
+    (unit-type-count-total villager < {{CASTLE_VILLS}})
+    (can-train villager)
+=>
+    (train villager)
+)
+(defrule
+    (current-age >= castle-age)
+    (unit-type-count-total villager < 100)
+    (can-train villager)
+=>
+    (train villager)
+)
+
+; Przejście do Feudala
+(defrule
+    (unit-type-count-total villager >= {{FEUDAL_VILLS}})
+    (can-research feudal-age)
+=>
+    (research feudal-age)
+)
+
+; Przejście do Castle Age
+(defrule
+    (unit-type-count-total villager >= {{CASTLE_VILLS}})
+    (can-research castle-age)
+=>
+    (research castle-age)
+)
+
+; =========================================================
+; 3. BUDOWNICTWO
+; =========================================================
+(defrule (housing-headroom < 4) (up-pending-objects c: house == 0) (can-build house) => (build house))
+(defrule (building-type-count-total mill == 0) (can-build mill) => (build mill))
+(defrule (building-type-count-total lumber-camp < {{MAX_LUMBER_CAMPS}}) (can-build lumber-camp) => (build lumber-camp))
+(defrule (building-type-count-total lumber-camp >= 1) (building-type-count-total mining-camp < {{MAX_MINING_CAMPS}}) (can-build mining-camp) => (build mining-camp))
+(defrule (building-type-count-total mill >= 1) (wood-amount >= 60) (idle-farm-count == 0) (can-build farm) => (build farm))
+
+; Koszary (Podstawa dla innych budynków)
+(defrule (building-type-count-total barracks == 0) (can-build barracks) => (build barracks))
+
+; Budynki genetyczne (Sprawdzamy teraz wbudowane flagi 'f-')
+(defrule (up-compare-const f-market == 1) (building-type-count-total market == 0) (can-build market) => (build market))
+(defrule (up-compare-const f-blacksmith == 1) (building-type-count-total blacksmith == 0) (can-build blacksmith) => (build blacksmith))
+(defrule (up-compare-const f-archery == 1) (building-type-count-total archery-range == 0) (can-build archery-range) => (build archery-range))
+(defrule (up-compare-const f-stable == 1) (building-type-count-total stable == 0) (can-build stable) => (build stable))
+(defrule (up-compare-const f-tower == 1) (building-type-count-total watch-tower == 0) (can-build watch-tower) => (build watch-tower))
+
+; =========================================================
+; 4. TECHNOLOGIE
+; =========================================================
+(defrule (up-compare-const f-loom == 1) (can-research ri-loom) => (research ri-loom))
+(defrule (up-compare-const f-wheelbarrow == 1) (can-research ri-wheel-barrow) => (research ri-wheel-barrow))
+(defrule (up-compare-const f-doubleaxe == 1) (can-research ri-double-bit-axe) => (research ri-double-bit-axe))
+(defrule (up-compare-const f-horsecollar == 1) (can-research ri-horse-collar) => (research ri-horse-collar))
+(defrule (up-compare-const f-goldmining == 1) (can-research ri-gold-mining) => (research ri-gold-mining))
+(defrule (up-compare-const f-fletching == 1) (can-research ri-fletching) => (research ri-fletching))
+(defrule (up-compare-const f-paddedarcher == 1) (can-research ri-padded-archer-armor) => (research ri-padded-archer-armor))
+(defrule (up-compare-const f-forging == 1) (can-research ri-forging) => (research ri-forging))
+(defrule (up-compare-const f-scalemail == 1) (can-research ri-scale-mail) => (research ri-scale-mail))
+(defrule (up-compare-const f-bloodlines == 1) (can-research ri-bloodlines) => (research ri-bloodlines))
+
+; =========================================================
+; 5. WOJSKO (Rekrutacja oparta na genach)
+; =========================================================
+(defrule
+    (unit-type-count-total militiaman-line < {{MILITIA_COUNT}})
+    (can-train militiaman-line)
+=>
+    (train militiaman-line)
+)
+(defrule
+    (unit-type-count-total archer-line < {{ARCHER_COUNT}})
+    (can-train archer-line)
+=>
+    (train archer-line)
+)
+(defrule
+    (unit-type-count-total skirmisher-line < {{SKIRM_COUNT}})
+    (can-train skirmisher-line)
+=>
+    (train skirmisher-line)
+)
+(defrule
+    (unit-type-count-total scout-cavalry-line < {{SCOUT_COUNT}})
+    (can-train scout-cavalry-line)
+=>
+    (train scout-cavalry-line)
+)
+
+; Jeśli mamy jakąkolwiek armię - wysyłamy do ataku!
+(defrule
+    (military-population > 5)
+=>
+    (attack-now)
+)
