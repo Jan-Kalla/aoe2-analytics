@@ -1,13 +1,17 @@
-; MILI-BOT EVOLUTION 9.1 (Poprawka DNA - Bezpieczne Stałe)
+; MILI-BOT EVOLUTION 12.1 (Ostateczna Architektura Hybrydowa)
 
 ; =========================================================
-; 0. ODCZYT GENÓW Z PYTHONA (MAPOWANIE NA ZMIENNE)
+; 0. ODCZYT GENÓW Z PYTHONA
 ; =========================================================
 (defconst f-market {{BUILD_MARKET}})
 (defconst f-blacksmith {{BUILD_BLACKSMITH}})
 (defconst f-archery {{BUILD_ARCHERY}})
 (defconst f-stable {{BUILD_STABLE}})
 (defconst f-tower {{BUILD_TOWER}})
+(defconst f-palisade {{BUILD_PALISADE}})
+(defconst f-siege {{BUILD_SIEGE}})
+(defconst f-castle {{BUILD_CASTLE}})
+(defconst f-target-eco {{TARGET_ECO}})
 
 (defconst f-loom {{TECH_LOOM}})
 (defconst f-wheelbarrow {{TECH_WHEELBARROW}})
@@ -20,94 +24,281 @@
 (defconst f-scalemail {{TECH_SCALE_MAIL}})
 (defconst f-bloodlines {{TECH_BLOODLINES}})
 
+(defconst gl-target-player 10)
+
 ; =========================================================
-; 1. INICJALIZACJA STRATEGII
+; AWARYJNY HANDEL NA RYNKU
 ; =========================================================
 (defrule
-    (true)
+    (building-type-count-total market > 0)
+    (wood-amount > 1000)
+    (gold-amount < 200)
+    (can-sell-commodity wood)
 =>
+    (sell-commodity wood)
+)
+
+(defrule
+    (building-type-count-total market > 0)
+    (food-amount > 1000)
+    (gold-amount < 200)
+    (can-sell-commodity food)
+=>
+    (sell-commodity food)
+)
+
+; =========================================================
+; 1. INICJALIZACJA - DARK AGE
+; =========================================================
+(defrule
+    (current-age == dark-age)
+=>
+    ; Wymuszamy alokację 25% na budowniczych na starcie, aby natychmiast postawili domek
+    (set-strategic-number sn-percent-civilian-builders 25)
+    (set-strategic-number sn-percent-civilian-gatherers 75)
+
     (set-strategic-number sn-number-explore-groups 1)
     (set-strategic-number sn-total-number-explorers 1)
     (set-strategic-number sn-maximum-town-size {{TOWN_SIZE}})
+    (set-strategic-number sn-wood-gatherer-percentage 20)
+    (set-strategic-number sn-food-gatherer-percentage 80)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (set-strategic-number sn-enable-boar-hunting {{BOAR_HUNTING}})
+    (set-strategic-number sn-minimum-boar-hunt-group-size {{BOAR_HUNTERS}})
+    (set-strategic-number sn-minimum-boar-lure-group-size 1)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (disable-self)
+)
+
+(defrule
+    (current-age >= feudal-age)
+=>
+    ; Przywracamy normalne proporcje budowniczych w późniejszej grze
+    (set-strategic-number sn-percent-civilian-builders 15)
+    (set-strategic-number sn-percent-civilian-gatherers 85)
 
     (set-strategic-number sn-wood-gatherer-percentage {{WOOD_PERCENT}})
     (set-strategic-number sn-gold-gatherer-percentage {{GOLD_PERCENT}})
     (set-strategic-number sn-stone-gatherer-percentage {{STONE_PERCENT}})
     (set-strategic-number sn-food-gatherer-percentage {{FOOD_PERCENT}})
-
-    (set-strategic-number sn-enable-boar-hunting {{BOAR_HUNTING}})
-    (set-strategic-number sn-minimum-boar-hunt-group-size {{BOAR_HUNTERS}})
-    (set-strategic-number sn-minimum-boar-lure-group-size 1)
-
     (set-strategic-number sn-percent-attack-soldiers {{ATTACK_PERCENT}})
     (disable-self)
 )
 
 ; =========================================================
-; 2. TWORZENIE WIEŚNIAKÓW I ERY
+; KRYTYCZNA INFRASTRUKTURA (Start i Ratusze)
 ; =========================================================
 (defrule
     (current-age == dark-age)
-    (unit-type-count-total villager < {{FEUDAL_VILLS}})
-    (can-train villager)
+    (housing-headroom < 4)
+    (up-pending-objects c: house == 0)
+    (can-build house)
 =>
-    (train villager)
+    (build house)
 )
+
+(defrule
+    (building-type-count-total town-center == 0)
+    (wood-amount > 275)
+    (stone-amount > 100)
+    (can-build town-center)
+=>
+    (build town-center)
+)
+
+(defrule
+    (current-age == castle-age)
+    (building-type-count-total town-center < 3)
+    (wood-amount > 350)
+    (stone-amount > 100)
+    (up-pending-objects c: town-center == 0)
+    (can-build town-center)
+=>
+    (build town-center)
+)
+
+; =========================================================
+; 1.5 AWANS DO EPOKI ZAMKOWEJ I PROTOKÓŁ OSZCZĘDZANIA
+; =========================================================
 (defrule
     (current-age == feudal-age)
-    (unit-type-count-total villager < {{CASTLE_VILLS}})
-    (can-train villager)
+    (building-type-count-total blacksmith < 1)
+    (can-build blacksmith)
 =>
-    (train villager)
-)
-(defrule
-    (current-age >= castle-age)
-    (unit-type-count-total villager < 100)
-    (can-train villager)
-=>
-    (train villager)
+    (build blacksmith)
 )
 
-; Przejście do Feudala
 (defrule
-    (unit-type-count-total villager >= {{FEUDAL_VILLS}})
-    (can-research feudal-age)
+    (current-age == feudal-age)
+    (building-type-count-total archery-range < 1)
+    (building-type-count-total stable < 1)
+    (building-type-count-total market < 1)
+    (can-build market)
 =>
-    (research feudal-age)
+    (build market)
 )
 
-; Przejście do Castle Age
 (defrule
-    (unit-type-count-total villager >= {{CASTLE_VILLS}})
-    (can-research castle-age)
+    (current-age == feudal-age)
+    (food-amount > 600)
+    (gold-amount > 150)
 =>
+    (set-escrow-percentage food 100)
+    (set-escrow-percentage gold 100)
+)
+
+(defrule
+    (can-research-with-escrow castle-age)
+=>
+    (release-escrow food)
+    (release-escrow gold)
     (research castle-age)
 )
 
 ; =========================================================
-; 3. BUDOWNICTWO
+; 2. DYNAMICZNA PRZESTRZEŃ I BUDOWANIE DOMKÓW
 ; =========================================================
-(defrule (housing-headroom < 4) (up-pending-objects c: house == 0) (can-build house) => (build house))
-(defrule (building-type-count-total mill == 0) (can-build mill) => (build mill))
-(defrule (building-type-count-total lumber-camp < {{MAX_LUMBER_CAMPS}}) (can-build lumber-camp) => (build lumber-camp))
-(defrule (building-type-count-total lumber-camp >= 1) (building-type-count-total mining-camp < {{MAX_MINING_CAMPS}}) (can-build mining-camp) => (build mining-camp))
-(defrule (building-type-count-total mill >= 1) (wood-amount >= 60) (idle-farm-count == 0) (can-build farm) => (build farm))
+(defrule
+    (current-age == feudal-age)
+    (strategic-number sn-maximum-town-size < 45)
+=>
+    (set-strategic-number sn-maximum-town-size 45)
+)
 
-; Koszary (Podstawa dla innych budynków)
+(defrule
+    (current-age == castle-age)
+    (strategic-number sn-maximum-town-size < 65)
+=>
+    (set-strategic-number sn-maximum-town-size 65)
+)
+
+(defrule
+    (housing-headroom < 5)
+    (up-pending-objects c: house < 1)
+    (can-build house)
+=>
+    (build house)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (housing-headroom < 12)
+    (up-pending-objects c: house < 2)
+    (can-build house)
+=>
+    (build house)
+)
+
+; =========================================================
+; 3. TECHNOLOGIE TOWN CENTER & AWANSE
+; =========================================================
+(defrule (up-compare-const f-loom == 1) (can-research ri-loom) => (research ri-loom))
+(defrule (unit-type-count-total villager >= {{FEUDAL_VILLS}}) (can-research feudal-age) => (research feudal-age))
+(defrule (up-compare-const f-wheelbarrow == 1) (can-research ri-wheel-barrow) => (research ri-wheel-barrow))
+(defrule (unit-type-count-total villager >= {{CASTLE_VILLS}}) (can-research castle-age) => (research castle-age))
+
+; =========================================================
+; 4. TWORZENIE WIEŚNIAKÓW
+; =========================================================
+(defrule (current-age == dark-age) (unit-type-count-total villager < {{FEUDAL_VILLS}}) (can-train villager) => (train villager))
+(defrule (current-age == dark-age) (food-amount < 50) (up-pending-objects c: villager == 0) (unit-type-count-total villager < {{FEUDAL_VILLS}}) => (up-drop-resources food c: 5))
+(defrule (current-age == feudal-age) (unit-type-count-total villager < {{CASTLE_VILLS}}) (can-train villager) => (train villager))
+(defrule (current-age >= castle-age) (unit-type-count-total villager < 100) (can-train villager) => (train villager))
+
+; =========================================================
+; 5. BUDOWNICTWO (GOSPODARKA I INFRASTRUKTURA BAZOWA)
+; =========================================================
+(defrule (building-type-count-total mill == 0) (can-build mill) => (build mill))
+(defrule (building-type-count-total lumber-camp == 0) (can-build lumber-camp) => (build lumber-camp))
+(defrule (building-type-count-total lumber-camp >= 1) (building-type-count-total mining-camp == 0) (can-build mining-camp) => (build mining-camp))
+
+(defrule (building-type-count-total mill >= 1) (wood-amount >= 60) (idle-farm-count == 0) (can-build farm) => (build farm))
 (defrule (building-type-count-total barracks == 0) (can-build barracks) => (build barracks))
 
-; Budynki genetyczne (Sprawdzamy teraz wbudowane flagi 'f-')
+(defrule (up-compare-const f-palisade == 1) (can-build-wall 1 palisade-wall) => (build-wall 1 palisade-wall))
 (defrule (up-compare-const f-market == 1) (building-type-count-total market == 0) (can-build market) => (build market))
 (defrule (up-compare-const f-blacksmith == 1) (building-type-count-total blacksmith == 0) (can-build blacksmith) => (build blacksmith))
 (defrule (up-compare-const f-archery == 1) (building-type-count-total archery-range == 0) (can-build archery-range) => (build archery-range))
 (defrule (up-compare-const f-stable == 1) (building-type-count-total stable == 0) (can-build stable) => (build stable))
 (defrule (up-compare-const f-tower == 1) (building-type-count-total watch-tower == 0) (can-build watch-tower) => (build watch-tower))
+(defrule (up-compare-const f-siege == 1) (current-age >= castle-age) (building-type-count-total siege-workshop == 0) (can-build siege-workshop) => (build siege-workshop))
 
 ; =========================================================
-; 4. TECHNOLOGIE
+; BUDOWA ZAMKU (Z bezpiecznikiem ilościowym)
 ; =========================================================
-(defrule (up-compare-const f-loom == 1) (can-research ri-loom) => (research ri-loom))
-(defrule (up-compare-const f-wheelbarrow == 1) (can-research ri-wheel-barrow) => (research ri-wheel-barrow))
+(defrule
+    (up-compare-const f-castle == 1)
+    (current-age >= castle-age)
+    (stone-amount >= 650)
+    (building-type-count-total castle < 2)
+    (up-pending-objects c: castle < 1)
+    (can-build castle)
+=>
+    (build castle)
+)
+
+(defrule
+    (building-type-count-total market > 0)
+    (stone-amount > 800)
+    (building-type-count-total castle >= 2)
+    (can-sell-commodity stone)
+=>
+    (sell-commodity stone)
+)
+
+; =========================================================
+; NIESKOŃCZONA EKSPANSJA GOSPODARCZA (Bez limitów ilościowych)
+; =========================================================
+(defrule
+    (building-type-count-total farm > 14)
+    (building-type-count-total mill < 2)
+    (up-pending-objects c: mill == 0)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+(defrule
+    (building-type-count-total farm > 26)
+    (building-type-count-total mill < 3)
+    (up-pending-objects c: mill == 0)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+(defrule
+    (dropsite-min-distance wood > 4)
+    (wood-amount > 150)
+    (up-pending-objects c: lumber-camp == 0)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+(defrule
+    (dropsite-min-distance gold > 5)
+    (wood-amount > 150)
+    (up-pending-objects c: mining-camp == 0)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+(defrule
+    (dropsite-min-distance stone > 5)
+    (strategic-number sn-stone-gatherer-percentage > 0)
+    (wood-amount > 150)
+    (up-pending-objects c: mining-camp == 0)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+; =========================================================
+; 6. TECHNOLOGIE POBOCZNE
+; =========================================================
 (defrule (up-compare-const f-doubleaxe == 1) (can-research ri-double-bit-axe) => (research ri-double-bit-axe))
 (defrule (up-compare-const f-horsecollar == 1) (can-research ri-horse-collar) => (research ri-horse-collar))
 (defrule (up-compare-const f-goldmining == 1) (can-research ri-gold-mining) => (research ri-gold-mining))
@@ -118,36 +309,185 @@
 (defrule (up-compare-const f-bloodlines == 1) (can-research ri-bloodlines) => (research ri-bloodlines))
 
 ; =========================================================
-; 5. WOJSKO (Rekrutacja oparta na genach)
+; AUTOMATYCZNE ULEPSZENIA LINII WOJSKOWYCH
+; =========================================================
+(defrule (can-research ri-man-at-arms) => (research ri-man-at-arms))
+(defrule (can-research ri-long-swordsman) => (research ri-long-swordsman))
+(defrule (can-research ri-crossbowman) => (research ri-crossbowman))
+(defrule (can-research ri-elite-skirmisher) => (research ri-elite-skirmisher))
+(defrule (can-research ri-light-cavalry) => (research ri-light-cavalry))
+(defrule (can-research ri-pikeman) => (research ri-pikeman))
+
+; =========================================================
+; 7. WOJSKO (PRODUKCJA)
+; =========================================================
+(defrule (unit-type-count-total militiaman-line < {{MILITIA_COUNT}}) (can-train-with-escrow militiaman-line) => (train militiaman-line))
+(defrule (unit-type-count-total archer-line < {{ARCHER_COUNT}}) (can-train-with-escrow archer-line) => (train archer-line))
+(defrule (unit-type-count-total skirmisher-line < {{SKIRM_COUNT}}) (can-train-with-escrow skirmisher-line) => (train skirmisher-line))
+(defrule (unit-type-count-total scout-cavalry-line < {{SCOUT_COUNT}}) (can-train-with-escrow scout-cavalry-line) => (train scout-cavalry-line))
+
+(defrule (unit-type-count-total spearman-line < {{SPEARMAN_COUNT}}) (can-train-with-escrow spearman-line) => (train spearman-line))
+(defrule (unit-type-count-total knight-line < {{KNIGHT_COUNT}}) (can-train-with-escrow knight-line) => (train knight-line))
+
+(defrule
+    (current-age == castle-age)
+    (building-type-count-total siege-workshop > 0)
+    (unit-type-count-total battering-ram-line < {{RAM_COUNT}})
+    (can-train battering-ram-line)
+=>
+    (train battering-ram-line)
+)
+
+; =========================================================
+; 8. TAKTYKA, RADAR I CELOWANIE
 ; =========================================================
 (defrule
-    (unit-type-count-total militiaman-line < {{MILITIA_COUNT}})
-    (can-train militiaman-line)
+    (true)
 =>
-    (train militiaman-line)
+    (up-find-player enemy find-closest gl-target-player)
 )
+
 (defrule
-    (unit-type-count-total archer-line < {{ARCHER_COUNT}})
+    (up-compare-goal gl-target-player > 0)
+=>
+    (up-modify-sn sn-focus-player-number g:= gl-target-player)
+    (up-modify-sn sn-target-player-number g:= gl-target-player)
+)
+
+(defrule
+    (current-age >= feudal-age)
+=>
+    (set-strategic-number sn-gather-idle-soldiers-at-center 1)
+    (set-strategic-number sn-minimum-attack-group-size {{MIN_ATTACK_GROUP}})
+    (disable-self)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (up-compare-const f-target-eco == 1)
+=>
+    (set-strategic-number sn-special-attack-type1 villager)
+    (set-strategic-number sn-special-attack-type2 lumber-camp)
+    (set-strategic-number sn-special-attack-type3 mining-camp)
+    (set-strategic-number sn-target-evaluation-distance 1)
+    (disable-self)
+)
+
+; =========================================================
+; DYNAMICZNE MORALE I ODWRÓT TAKTYCZNY
+; =========================================================
+(defrule
+    (military-population > 15)
+    (strategic-number sn-percent-attack-soldiers > 0)
+=>
+    (set-strategic-number sn-target-evaluation-damage-capability -10)
+)
+
+(defrule
+    (military-population < 10)
+    (strategic-number sn-percent-attack-soldiers > 0)
+=>
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-target-evaluation-damage-capability 0)
+    (set-strategic-number sn-gather-idle-soldiers-at-center 1)
+)
+
+; =========================================================
+; 9. OBLĘŻENIE I ZAPALNIKI ATAKU
+; =========================================================
+(defrule
+    (current-age == feudal-age)
+    (military-population > {{MIN_ATTACK_GROUP}})
+=>
+    (set-strategic-number sn-percent-attack-soldiers 100)
+    (attack-now)
+)
+
+(defrule
+    (current-age == castle-age)
+    (unit-type-count-total battering-ram-line > 0)
+    (military-population > {{ARMY_SIZE_WITH_SIEGE}})
+=>
+    (set-strategic-number sn-percent-attack-soldiers 100)
+    (attack-now)
+)
+
+(defrule
+    (current-age == castle-age)
+    (unit-type-count-total battering-ram-line == 0)
+    (military-population > {{ARMY_SIZE_NO_SIEGE}})
+=>
+    (set-strategic-number sn-percent-attack-soldiers 100)
+    (attack-now)
+)
+
+; =========================================================
+; 10. PROTOKÓŁ NADWYŻKI I DYNAMICZNA INFRASTRUKTURA
+; =========================================================
+(defrule
+    (current-age == castle-age)
+    (wood-amount > 250)
+    (building-type-count-total barracks < 3)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (current-age == castle-age)
+    (wood-amount > 300)
+    (up-compare-const f-archery == 1)
+    (building-type-count-total archery-range < 3)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+(defrule
+    (current-age == castle-age)
+    (wood-amount > 300)
+    (up-compare-const f-stable == 1)
+    (building-type-count-total stable < 3)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (current-age == castle-age)
+    (wood-amount > 350)
+    (up-compare-const f-siege == 1)
+    (building-type-count-total siege-workshop < 2)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+(defrule
+    (current-age == castle-age)
+    (wood-amount > 400)
+    (gold-amount > 200)
+    (up-compare-const f-archery == 1)
     (can-train archer-line)
 =>
     (train archer-line)
 )
+
 (defrule
-    (unit-type-count-total skirmisher-line < {{SKIRM_COUNT}})
-    (can-train skirmisher-line)
+    (current-age == castle-age)
+    (food-amount > 400)
+    (gold-amount > 200)
+    (up-compare-const f-stable == 1)
+    (can-train knight-line)
 =>
-    (train skirmisher-line)
-)
-(defrule
-    (unit-type-count-total scout-cavalry-line < {{SCOUT_COUNT}})
-    (can-train scout-cavalry-line)
-=>
-    (train scout-cavalry-line)
+    (train knight-line)
 )
 
-; Jeśli mamy jakąkolwiek armię - wysyłamy do ataku!
 (defrule
-    (military-population > 5)
+    (current-age == castle-age)
+    (food-amount > 400)
+    (wood-amount > 300)
+    (can-train spearman-line)
 =>
-    (attack-now)
+    (train spearman-line)
 )

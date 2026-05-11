@@ -1,0 +1,40 @@
+--- ODCZYT BARDZO SZEROKICH KOLUMN --- 
+
+KOLUMNA [Zabojstwa] surowy odczyt OCR:
+? B.
+- :
+“7 . ~
+74
+AN
+~- . A
+ID TE
+. . MAY
+™ .
+. A ;
+A . : ‘
+-> Zinterpretowane: [7, 74, 10]
+
+KOLUMNA [Budynki] surowy odczyt OCR:
+ARS |
+
+_ NF |
+
+:™ . ES
+|
+-> Zinterpretowane: [1, 1, 1]
+
+KOLUMNA [Armia] surowy odczyt OCR:
+‘A
+EY
+OL
+AL
+-> Zinterpretowane: [1, 1]
+
+BOT 1 => Zabite: 7, Budynki: 1, Armia: 1 | WYNIK BOJOWY: 172
+BOT 2 => Zabite: 74, Budynki: 1, Armia: 1 | WYNIK BOJOWY: 842
+BOT 3 => Zabite: 10, Budynki: 1, Armia: 0 | WYNIK BOJOWY: 200
+BOT 4 => Zabite: 0, Budynki: 0, Armia: 0 | WYNIK BOJOWY: 0
+BOT 5 => Zabite: 0, Budynki: 0, Armia: 0 | WYNIK BOJOWY: 0
+BOT 6 => Zabite: 0, Budynki: 0, Armia: 0 | WYNIK BOJOWY: 0
+BOT 7 => Zabite: 0, Budynki: 0, Armia: 0 | WYNIK BOJOWY: 0
+BOT 8 => Zabite: 0, Budynki: 0, Armia: 0 | WYNIK BOJOWY: 0
