@@ -58,8 +58,8 @@ def deploy_population_to_workers(population):
                 "(defconst siege-weapon-class 927)\n"
             )
 
-            # [NOWE] Ładowanie oficjalnego słownika stałych UserPatch na samej górze pliku bota
-            bot_content = f"; Genetyczny Barbarian GP | Global ID: {global_idx}\n(load \"UserPatchConst\")\n" + lisp_code + dummy_rule
+            # Sklejamy wszystko w jeden, pancerny plik
+            bot_content = f"; Genetyczny Barbarian GP | Global ID: {global_idx}\n" + up_constants + lisp_code + dummy_rule
 
             # Zrzucamy wygenerowany kod na twardy dysk do struktur odpowiedniego workera
             for fld in folders_to_seed:
