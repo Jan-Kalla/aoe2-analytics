@@ -1,124 +1,113 @@
 import random
-import os
-import csv
-from config import *
+from deap import base, creator, tools, gp
+from economy_primitives import get_economy_pset
+
+# ==========================================
+# 1. INICJALIZACJA DEAP I TYPÓW AST
+# ==========================================
+pset = get_economy_pset()
+
+# Zabezpieczenie przed wielokrotnym tworzeniem klas przez DEAP
+if not hasattr(creator, "FitnessMax"):
+    # Maksymalizujemy fitness (będziemy do niego przekazywać wynik z gry minus kara za rozmiar)
+    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+if not hasattr(creator, "Individual"):
+    # Osobnik to teraz matematyczne drzewo!
+    creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMax)
+
+toolbox = base.Toolbox()
+
+# Ograniczamy głębokość początkowego drzewa (żeby na starcie pliki nie miały miliona linijek)
+toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=2, max_=5)
+toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
+toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+toolbox.register("compile", gp.compile, pset=pset)
+
+# ==========================================
+# 2. NARZĘDZIA CHIRURGICZNE (Mutacje AST)
+# ==========================================
+# Selekcja do turniejów dla Mutacji i Krzyżowania
+toolbox.register("select", tools.selTournament, tournsize=3)
+
+# Transplantacja gałęzi między dwoma botami
+toolbox.register("mate", gp.cxOnePoint)
+
+# Mutacje
+toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
+toolbox.register("mutUniform", gp.mutUniform, expr=toolbox.expr_mut, pset=pset)
+toolbox.register("mutShrink", gp.mutShrink)
+toolbox.register("mutNodeReplacement", gp.mutNodeReplacement, pset=pset)
 
 
-def create_random_genome():
-    return {
-        'town_size': random.randint(15, 30),
-        'wood_percent': random.randint(20, 50),
-        'gold_percent': random.randint(0, 20),
-        'stone_percent': random.randint(0, 10),
+# ==========================================
+# 3. GŁÓWNA PĘTLA EWOLUCYJNA (Twój autorski system)
+# ==========================================
+def build_next_generation(scored_population, elite_count=6, crossover_count=48, mutant_count=30, random_count=12):
+    """
+    scored_population: lista krotek (punkty, genom_AST, ID) posortowana malejąco!
+    Wszystkie operacje genetyczne wykonujemy bezpośrednio na kodzie Lisp.
+    """
+    next_gen = []
 
-        # Poprawka 1: Szersze widełki awansu, żeby uciec z "więzienia genetycznego"
-        'feudal_vills': random.randint(18, 28),
-        'castle_vills': random.randint(28, 40),
+    # Wyciągamy same drzewa (osobniki), odrzucając punkty i ID
+    individuals = [ind for (score, ind, worker_id) in scored_population]
 
-        'boar_hunting': random.choice([0, 1]),
-        'boar_hunters': random.randint(4, 8),
+    # --- GRUPA 1: ELITA (Kopiowanie 1:1) ---
+    for i in range(elite_count):
+        elite_clone = toolbox.clone(individuals[i])
+        next_gen.append(elite_clone)
 
-        # Geny Budynków
-        'build_market': random.choice([0, 1]),
-        'build_blacksmith': random.choice([0, 1]),
-        'build_archery': random.choice([0, 1]),
-        'build_stable': random.choice([0, 1]),
-        'build_tower': random.choice([0, 1]),
-        'build_palisade': random.choice([0, 1]),
-        'build_castle': random.choice([0, 1]),
-        'build_siege': 1,  # Zablokowane na stałe
+    # --- GRUPA 2: LEKKIE MUTACJE (Krzyżowanie/Transplantacja) ---
+    # Dzielimy przez 2, bo skrzyżowanie 2 rodziców daje 2 dzieci
+    for _ in range(crossover_count // 2):
+        # Losujemy 2 dobrych rodziców metodą turniejową
+        parent1 = toolbox.clone(toolbox.select(individuals, 1)[0])
+        parent2 = toolbox.clone(toolbox.select(individuals, 1)[0])
 
-        # Geny Wojskowe
-        'militia_count': random.randint(0, 10),
-        'archer_count': random.randint(10, 40),
-        'skirm_count': random.randint(0, 15),
-        'scout_count': random.randint(0, 10),
-        'spearman_count': random.randint(0, 25),
-        'knight_count': random.randint(10, 30),
-        'ram_count': random.randint(2, 5),
+        child1, child2 = toolbox.mate(parent1, parent2)
+        next_gen.append(child1)
+        next_gen.append(child2)
 
-        # Geny Taktyczne
-        'attack_group_size': random.randint(12, 35),
-        'target_eco': random.choice([0, 1]),
-        'attack_percent': random.randint(50, 100),
-        'min_attack_group': random.randint(8, 20),
-        'army_size_with_siege': random.randint(15, 25),
-        'army_size_no_siege': random.randint(35, 50),
+    # --- GRUPA 3: CIĘŻKIE MUTACJE (Mutacje Strukturalne) ---
+    for _ in range(mutant_count):
+        mutant = toolbox.clone(toolbox.select(individuals, 1)[0])
 
-        # Geny Technologii
-        'tech_loom': random.choice([0, 1]),
-        'tech_wheelbarrow': random.choice([0, 1]),
-        'tech_double_axe': random.choice([0, 1]),
-        'tech_horse_collar': random.choice([0, 1]),
-        'tech_gold_mining': random.choice([0, 1]),
-        'tech_fletching': random.choice([0, 1]),
-        'tech_padded_archer': random.choice([0, 1]),
-        'tech_forging': random.choice([0, 1]),
-        'tech_scale_mail': random.choice([0, 1]),
-        'tech_bloodlines': random.choice([0, 1])
-    }
+        # Rzut kostką - jak uderzy mutacja?
+        choice = random.random()
+        if choice < 0.4:
+            # 40% szans na wklejenie zupełnie nowej logiki (Uniform)
+            mutant, = toolbox.mutUniform(mutant)
+        elif choice < 0.7:
+            # 30% szans na usunięcie losowej gałęzi (Odchudzanie/Shrink)
+            mutant, = toolbox.mutShrink(mutant)
+        else:
+            # 30% szans na odcięcie głowy i zrobienie korzenia z głębokiej reguły (Hoist)
+            mutant, = toolbox.mutNodeReplacement(mutant)
 
+        next_gen.append(mutant)
 
-def crossover(parent1, parent2):
-    child = {}
-    for key in parent1.keys():
-        child[key] = parent1[key] if random.random() > 0.5 else parent2[key]
-    return child
+    # --- GRUPA 4: ŚWIEŻA KREW (Kompletnie od zera) ---
+    for _ in range(random_count):
+        fresh_bot = toolbox.individual()
+        next_gen.append(fresh_bot)
+
+    # Bezpiecznik (gdyby pojawiły się różnice parzyste)
+    while len(next_gen) < (elite_count + crossover_count + mutant_count + random_count):
+        next_gen.append(toolbox.individual())
+
+    return next_gen
 
 
-def mutate(genome):
-    mutated = genome.copy()
-    for key, val in mutated.items():
-        if key == 'build_siege':
-            continue
-
-        if random.random() < MUTATION_RATE:
-            if key in ['build_market', 'build_blacksmith', 'build_archery', 'build_stable',
-                       'build_tower', 'build_palisade', 'build_castle', 'boar_hunting', 'target_eco'] or 'tech_' in key:
-                mutated[key] = 1 - val
-            elif 'percent' in key and key != 'attack_percent':
-                mutated[key] = max(0, min(60, val + random.randint(-5, 5)))
-            elif key == 'attack_percent':
-                mutated[key] = max(20, min(100, val + random.randint(-10, 10)))
-            else:
-                mutated[key] = max(0, val + random.randint(-3, 3))
-    return mutated
+# ==========================================
+# 4. FUNKCJE WSPOMAGAJĄCE DLA main.py
+# ==========================================
+def create_initial_population(size=96):
+    """Tworzy pierwszą generację botów (Drzewa AST)"""
+    return toolbox.population(n=size)
 
 
-def deploy_tournament_bots(population):
-    with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
-        template_content = f.read()
-
-    for idx, genome in enumerate(population):
-        name = f"Milibot_Evo_{idx + 1}"
-        food_p = max(0, 100 - genome['wood_percent'] - genome['gold_percent'] - genome['stone_percent'])
-        bot_content = template_content.replace("{{BOT_ID}}", str(idx + 1))
-
-        for key, value in genome.items():
-            bot_content = bot_content.replace(f"{{{{{key.upper()}}}}}", str(value))
-        bot_content = bot_content.replace("{{FOOD_PERCENT}}", str(food_p))
-
-        with open(os.path.join(AOE2_AI_FOLDER, f"{name}.per"), "w", encoding="utf-8") as f:
-            f.write(bot_content)
-        with open(os.path.join(AOE2_AI_FOLDER, f"{name}.ai"), "w", encoding="utf-8") as f:
-            f.write(f'(load "{name}")\n')
-
-
-def load_population_from_csv():
-    if not os.path.isfile(CSV_FILENAME) or os.path.getsize(CSV_FILENAME) == 0:
-        return None, 0
-    with open(CSV_FILENAME, 'r') as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
-    if not rows: return None, 0
-    last_gen = max(int(row['Generacja']) for row in rows)
-    last_gen_rows = [r for r in rows if int(r['Generacja']) == last_gen]
-
-    evaluated_pop = []
-    gene_keys = reader.fieldnames[3:]
-    for row in last_gen_rows:
-        genome = {key: int(row[key]) for key in gene_keys}
-        evaluated_pop.append((int(row['Punkty']), genome, int(row['Bot_ID'])))
-
-    evaluated_pop.sort(key=lambda x: x[0], reverse=True)
-    return evaluated_pop, last_gen
+def generate_per_file_content(individual):
+    """Kompiluje matematyczne drzewo AST do czystego tekstu w formacie Lisp (.per)"""
+    # Rozwiązujemy drzewo AST bezpośrednio do stringa za pomocą kontekstu klocków
+    lisp_code = eval(str(individual), pset.context)
+    return lisp_code

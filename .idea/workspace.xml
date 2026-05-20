@@ -5,23 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="31fba216-a6d1-44f0-9e1b-9bc693168ee4" name="Changes" comment="first_model_acc15">
-      <change afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/genetic_engine.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/migracja_csv.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vision_rpa.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/wykres.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/wzorzec_menu.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/wzorzec_wyjscie.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/wzorzec_wynik.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/economy_primitives.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/genetic_grammar.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/military_primitives.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/simulation_runner.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tactics_primitives.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/auto_evolution.py" beforeDir="false" afterPath="$PROJECT_DIR$/auto_evolution.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genetic_engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/genetic_engine.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/historia_ewolucji.csv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/template.per" beforeDir="false" afterPath="$PROJECT_DIR$/template.per" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.aoe2record" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test2.aoe2record" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_ekranu.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/znajdz_log.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,12 +59,17 @@
     "Python.bot_manager.executor": "Run",
     "Python.clean_data.executor": "Run",
     "Python.config.executor": "Run",
+    "Python.diagnostic_radar.executor": "Run",
     "Python.find_mouse.executor": "Run",
+    "Python.genetic_engine.executor": "Run",
+    "Python.genetic_grammar.executor": "Run",
     "Python.genetic_optimizer.executor": "Run",
     "Python.main.executor": "Run",
     "Python.merge_replays.executor": "Run",
     "Python.migracja_csv.executor": "Run",
+    "Python.simulation_runner.executor": "Run",
     "Python.starcie_epok.executor": "Run",
+    "Python.tactics_primitives.executor": "Run",
     "Python.test_ocr.executor": "Run",
     "Python.train_model.executor": "Run",
     "Python.vision_rpa.executor": "Run",
