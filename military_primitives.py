@@ -22,6 +22,9 @@ def add_military_nodes(pset, Condition, Action):
         pset.addTerminal(f"(unit-type-count {unit} < 15)", Condition, name=f"c_some_{name}")
         pset.addTerminal(f"(unit-type-count {unit} < 30)", Condition, name=f"c_many_{name}")
 
+        # [DODAJ TO] Warunek sprawdzenia możliwości szkolenia:
+        pset.addTerminal(f"(can-train {unit})", Condition, name=f"c_can_train_{name}")
+
         # Akcje: Produkcja jednostek
         pset.addTerminal(f"(train {unit})", Action, name=f"a_train_{name}")
 

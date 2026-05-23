@@ -65,10 +65,19 @@ def get_economy_pset():
         pset.addTerminal(f"(can-build {b})", Condition, name=f"c_can_build_{b.replace('-', '_')}")
         pset.addTerminal(f"(build {b})", Action, name=f"a_build_{b.replace('-', '_')}")
 
+
     # --- 2. Numery Strategiczne Gospodarki (Ekspansja i Odległości) ---
+    # 1. Zostawiamy "sztywne" wartości (dla kompatybilności z poprzednimi generacjami)
     town_sizes = [12, 20, 30, 40]
     for size in town_sizes:
         pset.addTerminal(f"(set-strategic-number sn-maximum-town-size {size})", Action, name=f"a_town_size_{size}")
+
+    # 2. DODAJEMY NOWY: dynamiczny klocek (pozwala na mutację dowolnej wartości)
+    # Używamy innej nazwy (np. a_dyn_town_size), żeby nie było konfliktu
+    def set_town_size(size):
+        return f"(set-strategic-number sn-maximum-town-size {size})"
+
+    pset.addPrimitive(set_town_size, [int], Action, name="a_dyn_town_size")
 
     vill_dropsites = [
         ("wood", "lumber-camp"), ("food", "mill"),

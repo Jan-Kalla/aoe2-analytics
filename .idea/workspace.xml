@@ -5,8 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="31fba216-a6d1-44f0-9e1b-9bc693168ee4" name="Changes" comment="first_model_acc15">
+      <change afterPath="$PROJECT_DIR$/ekstraktor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/generator_wykresow.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/economy_primitives.py" beforeDir="false" afterPath="$PROJECT_DIR$/economy_primitives.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genetic_engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/genetic_engine.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/historia_backup_1779064016.csv" beforeDir="false" afterPath="$PROJECT_DIR$/historia_backup_1779064016.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/historia_ewolucji.csv" beforeDir="false" afterPath="$PROJECT_DIR$/historia_ewolucji.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/historia_ewolucji_BACKUP.csv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/military_primitives.py" beforeDir="false" afterPath="$PROJECT_DIR$/military_primitives.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tactics_primitives.py" beforeDir="false" afterPath="$PROJECT_DIR$/tactics_primitives.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,7 +60,9 @@
     "Python.clean_data.executor": "Run",
     "Python.config.executor": "Run",
     "Python.diagnostic_radar.executor": "Run",
+    "Python.ekstraktor.executor": "Run",
     "Python.find_mouse.executor": "Run",
+    "Python.generator_wykresow.executor": "Run",
     "Python.genetic_engine.executor": "Run",
     "Python.genetic_grammar.executor": "Run",
     "Python.genetic_optimizer.executor": "Run",

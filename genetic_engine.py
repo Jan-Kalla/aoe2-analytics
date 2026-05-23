@@ -42,7 +42,7 @@ toolbox.register("mutNodeReplacement", gp.mutNodeReplacement, pset=pset)
 # ==========================================
 # 3. GŁÓWNA PĘTLA EWOLUCYJNA (Twój autorski system)
 # ==========================================
-def build_next_generation(scored_population, elite_count=6, crossover_count=48, mutant_count=30, random_count=12):
+def build_next_generation(scored_population, elite_count=12, crossover_count=48, mutant_count=30, random_count=6):
     """
     scored_population: lista krotek (punkty, genom_AST, ID) posortowana malejąco!
     Wszystkie operacje genetyczne wykonujemy bezpośrednio na kodzie Lisp.
@@ -107,7 +107,25 @@ def create_initial_population(size=96):
 
 
 def generate_per_file_content(individual):
-    """Kompiluje matematyczne drzewo AST do czystego tekstu w formacie Lisp (.per)"""
-    # Rozwiązujemy drzewo AST bezpośrednio do stringa za pomocą kontekstu klocków
-    lisp_code = eval(str(individual), pset.context)
-    return lisp_code
+    """
+    Kompiluje drzewo AST do tekstu Lisp omijając limit zagnieżdżeń Pythona.
+    Używa oficjalnego słownika DEAP (pset.context), wiernie symulując eval().
+    """
+    stack = []
+
+    for node in reversed(individual):
+        if node.arity == 0:
+            # KRYTYCZNA POPRAWKA: Pytamy oficjalny słownik, tak jak robi to eval().
+            # Gwarantuje to poprawne tłumaczenie (np. c_few_watch_tower -> (unit-type-count...))
+            if node.name in pset.context:
+                stack.append(str(pset.context[node.name]))
+            else:
+                # Jeśli węzła nie ma w słowniku, jest to wylosowana liczba (ERC)
+                stack.append(str(node.value))
+        else:
+            # Dla funkcji logicznych (DEFRULE, MANY_RULES, itp.) pobieramy zmontowane argumenty ze stosu
+            args = [stack.pop() for _ in range(node.arity)]
+            func = pset.context[node.name]
+            stack.append(str(func(*args)))
+
+    return stack[0]

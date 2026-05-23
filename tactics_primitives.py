@@ -38,9 +38,14 @@ def add_tactics_nodes(pset, Condition, Action):
     pset.addPrimitive(set_attack_percent, [int], Action, name="a_dynamic_atk_percent")
     pset.addPrimitive(set_camp_distance, [int], Action, name="a_dynamic_camp_dist")
 
+    # W tactics_primitives.py
+    pset.addTerminal("(game-time > 1000)", Condition, name="c_game_time_15min")
+    pset.addTerminal("(game-time > 2000)", Condition, name="c_game_time_30min")
+
     # --- 1.5 Eksploracja i Zwiad (Scouting Engine) ---
     pset.addTerminal("(set-strategic-number sn-total-number-explorers 1)", Action, name="a_enable_scout")
     pset.addTerminal("(set-strategic-number sn-total-number-explorers 0)", Action, name="a_disable_scout")
+    pset.addTerminal("(set-strategic-number sn-number-explore-groups 1)", Action, name="a_explore_enable_groups")
 
     # [NOWE] Zamiast zakazywać, pozwalamy ewolucji samej ustalić limity!
     def set_civ_scout_cap(cap):
@@ -55,13 +60,12 @@ def add_tactics_nodes(pset, Condition, Action):
 
     # --- 2. Magia UserPatch 1.5 (Mikrozarządzanie i Planowanie Przestrzenne) ---
     pset.addTerminal("(town-under-attack)", Condition, name="c_under_attack")
-    #pset.addTerminal("(up-micro-reverse c: archery-class c: infantry-class)", Action, name="a_micro_kiting_archers")
-    #pset.addTerminal("(up-micro-forward c: infantry-class c: archery-class)", Action, name="a_micro_charge_infantry")
+    pset.addTerminal("(up-micro-reverse c: archery-class c: infantry-class)", Action, name="a_micro_kiting_archers")
+    pset.addTerminal("(up-micro-forward c: infantry-class c: archery-class)", Action, name="a_micro_charge_infantry")
     pset.addTerminal("(up-target-objects c: archery-class action-default c: siege-weapon-class c: 0)", Action,
                      name="a_focus_fire_siege")
     pset.addTerminal("(up-retreat-to town-center c: 0)", Action, name="a_retreat_tc")
     pset.addTerminal("(up-retreat-to castle c: 0)", Action, name="a_retreat_castle")
-
 
     # Budynki w bazie wroga i sztuczne murowanie
     pset.addTerminal("(up-build place-forward 82 c: 0)", Action, name="a_forward_castle")
