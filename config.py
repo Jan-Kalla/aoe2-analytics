@@ -16,5 +16,5 @@ BASE_PORT = 64720
 NUM_WORKERS = 12           # Liczba równoległych okien (wątków)
 BOTS_PER_MATCH = 8        # Liczba botów walczących naraz na jednej mapie TestEvo
 GENERATIONS = 3000
-MATCH_DURATION = 2000
-MUTATION_RATE = 0.15
+MATCH_DURATION = 3000
+MUTATION_RATE = 0.75

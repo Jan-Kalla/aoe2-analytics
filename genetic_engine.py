@@ -1,6 +1,7 @@
 import random
 from deap import base, creator, tools, gp
 from economy_primitives import get_economy_pset
+from config import MUTATION_RATE
 
 # ==========================================
 # 1. INICJALIZACJA DEAP I TYPÓW AST
@@ -40,9 +41,35 @@ toolbox.register("mutNodeReplacement", gp.mutNodeReplacement, pset=pset)
 
 
 # ==========================================
-# 3. GŁÓWNA PĘTLA EWOLUCYJNA (Twój autorski system)
+# 3. GŁÓWNA PĘTLA EWOLUCYJNA
 # ==========================================
-def build_next_generation(scored_population, elite_count=12, crossover_count=48, mutant_count=30, random_count=6):
+# ==========================================
+# [NOWE] AUTORSKA MUTACJA WIELOPUNKTOWA
+# ==========================================
+def mut_dynamic_coverage(individual, pset_ref, max_percent=0.05):  # <-- Tutaj prawilny snake_case (PEP 8)
+    """
+    Losowo mutuje od 0% do max_percent wszystkich węzłów w drzewie bota.
+    Zastępuje statyczną, jednowęzłową mutację DEAP.
+    """
+    size = len(individual)
+
+    # Losujemy procent pokrycia mutacją (od 0.0 do np. 0.05)
+    coverage = random.uniform(0.0, max_percent)
+
+    # Obliczamy ile to fizycznie węzłów (np. 500 * 0.04 = 20 mutacji)
+    num_mutations = int(size * coverage)
+
+    # Wykonujemy standardową mutację DEAP wielokrotnie w pętli
+    for _ in range(num_mutations):
+        individual, = gp.mutNodeReplacement(individual, pset=pset_ref)
+
+    return individual,
+
+
+# Rejestrujemy naszą nową funkcję w narzędziach (przekazując słownik pset)
+toolbox.register("mutDynamicCoverage", mut_dynamic_coverage, pset_ref=pset)
+
+def build_next_generation(scored_population, elite_count=12, crossover_count=52, mutant_count=32):
     """
     scored_population: lista krotek (punkty, genom_AST, ID) posortowana malejąco!
     Wszystkie operacje genetyczne wykonujemy bezpośrednio na kodzie Lisp.
@@ -52,25 +79,40 @@ def build_next_generation(scored_population, elite_count=12, crossover_count=48,
     # Wyciągamy same drzewa (osobniki), odrzucając punkty i ID
     individuals = [ind for (score, ind, worker_id) in scored_population]
 
+    # ==========================================
+    # [NOWE] TWARDA SELEKCJA ODCIĘCIA (Truncation)
+    # ==========================================
+    # Odcinamy 1/3 najsłabszych botów. Do reprodukcji dopuszczamy tylko top 66%.
+    rozmiar_puli = int(len(individuals) * (2 / 3))
+    mating_pool = individuals[:rozmiar_puli]
+
     # --- GRUPA 1: ELITA (Kopiowanie 1:1) ---
+    # Elita musi zostać, to absolutni mistrzowie obecnej generacji
     for i in range(elite_count):
         elite_clone = toolbox.clone(individuals[i])
         next_gen.append(elite_clone)
 
-    # --- GRUPA 2: LEKKIE MUTACJE (Krzyżowanie/Transplantacja) ---
-    # Dzielimy przez 2, bo skrzyżowanie 2 rodziców daje 2 dzieci
+    # --- GRUPA 2: LEKKIE MUTACJE (Krzyżowanie + Dynamiczna Mutacja Wielopunktowa) ---
     for _ in range(crossover_count // 2):
-        # Losujemy 2 dobrych rodziców metodą turniejową
-        parent1 = toolbox.clone(toolbox.select(individuals, 1)[0])
-        parent2 = toolbox.clone(toolbox.select(individuals, 1)[0])
+        # Losujemy rodziców metodą turniejową z bezpiecznej puli
+        parent1 = toolbox.clone(toolbox.select(mating_pool, 1)[0])
+        parent2 = toolbox.clone(toolbox.select(mating_pool, 1)[0])
 
+        # 1. KRZYŻOWANIE (Wymiana głównych gałęzi)
         child1, child2 = toolbox.mate(parent1, parent2)
+
+        # 2. DYNAMICZNA MUTACJA (Od 0% do 5% węzłów całego drzewa)
+        # Każde dziecko losuje swój własny stopień mutacji z zachowaniem górnego limitu (max 5%)
+        child1, = toolbox.mutDynamicCoverage(child1, max_percent=0.05)
+        child2, = toolbox.mutDynamicCoverage(child2, max_percent=0.05)
+
         next_gen.append(child1)
         next_gen.append(child2)
 
     # --- GRUPA 3: CIĘŻKIE MUTACJE (Mutacje Strukturalne) ---
     for _ in range(mutant_count):
-        mutant = toolbox.clone(toolbox.select(individuals, 1)[0])
+        # [ZMIANA] Bazy do mutacji szukamy tylko w bezpiecznej puli mating_pool
+        mutant = toolbox.clone(toolbox.select(mating_pool, 1)[0])
 
         # Rzut kostką - jak uderzy mutacja?
         choice = random.random()
@@ -81,19 +123,17 @@ def build_next_generation(scored_population, elite_count=12, crossover_count=48,
             # 30% szans na usunięcie losowej gałęzi (Odchudzanie/Shrink)
             mutant, = toolbox.mutShrink(mutant)
         else:
-            # 30% szans na odcięcie głowy i zrobienie korzenia z głębokiej reguły (Hoist)
+            # 30% szans na podmianę konkretnego węzła (NodeReplacement)
             mutant, = toolbox.mutNodeReplacement(mutant)
 
         next_gen.append(mutant)
 
-    # --- GRUPA 4: ŚWIEŻA KREW (Kompletnie od zera) ---
-    for _ in range(random_count):
-        fresh_bot = toolbox.individual()
-        next_gen.append(fresh_bot)
+    # GRUPA 4 (Świeża Krew) została usunięta, aby nie psuć DNA wysoce rozwiniętych botów.
 
-    # Bezpiecznik (gdyby pojawiły się różnice parzyste)
-    while len(next_gen) < (elite_count + crossover_count + mutant_count + random_count):
-        next_gen.append(toolbox.individual())
+    # Bezpiecznik (gdyby pojawiły się luki w liście przez błędy zaokrągleń)
+    while len(next_gen) < (elite_count + crossover_count + mutant_count):
+        # Jeśli brakuje bota, zapychamy lukę bezpiecznym klonem wylosowanym z dobrej puli
+        next_gen.append(toolbox.clone(random.choice(mating_pool)))
 
     return next_gen
 

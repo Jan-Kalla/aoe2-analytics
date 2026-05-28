@@ -3,23 +3,24 @@ import shutil
 import subprocess
 import time
 import random
+import logging
 from config import *
 import ctypes
 import msgpackrpc
 import threading
 
+# [NOWE] Uciszamy wbudowane ostrzeżenia Tornado (msgpackrpc) o zamkniętych portach
+logging.getLogger('tornado.general').setLevel(logging.ERROR)
+logging.getLogger('tornado.application').setLevel(logging.ERROR)
+
 
 def arrange_windows(workers_count):
-    """Automatycznie układa okna gry w siatkę wizualną na monitorze panoramicznym."""
-    print("[*] Układanie okien na monitorze...")
+    print("[*] Aktywowanie okien (bez zmiany rozmiaru)...")
     EnumWindows = ctypes.windll.user32.EnumWindows
     EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int))
     GetWindowText = ctypes.windll.user32.GetWindowTextW
     GetWindowTextLength = ctypes.windll.user32.GetWindowTextLengthW
     IsWindowVisible = ctypes.windll.user32.IsWindowVisible
-    MoveWindow = ctypes.windll.user32.MoveWindow
-
-    # [NOWE] Importujemy funkcję do "klikania" (aktywacji) okna
     SetForegroundWindow = ctypes.windll.user32.SetForegroundWindow
 
     hwnds = []
@@ -35,20 +36,12 @@ def arrange_windows(workers_count):
 
     EnumWindows(EnumWindowsProc(foreach_window), 0)
 
-    width = 3200 // 4
-    height = 1800 // 3
-
-    for i, hwnd in enumerate(hwnds[:workers_count]):
-        row = i // 4
-        col = i % 4
-        MoveWindow(hwnd, col * width, row * height, width, height, True)
-
-        # [NOWE] Symulujemy kliknięcie użytkownika, by wybudzić silnik
+    # Iterujemy tylko po znalezionych uchwytach i sprowadzamy je na wierzch
+    for hwnd in hwnds[:workers_count]:
         SetForegroundWindow(hwnd)
-        time.sleep(0.05)  # Dajemy silnikowi pół sekundy na załadowanie DirectX w pełnym skupieniu
+        time.sleep(0.05)
 
 def emergency_wake_up():
-    """Błyskawiczne, awaryjne 'szturchnięcie' wszystkich okien, by wybudzić zahibernowany DirectX."""
     EnumWindows = ctypes.windll.user32.EnumWindows
     EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int))
     GetWindowText = ctypes.windll.user32.GetWindowTextW
@@ -67,9 +60,8 @@ def emergency_wake_up():
 
     EnumWindows(EnumWindowsProc(foreach_window), 0)
 
-
 def setup_workers(workers_count):
-    print("\n[*] Weryfikacja struktury wielowątkowej (Workerów)...")
+    # Usunięto print, żeby zachować czystą konsolę, zostawiamy tylko istotne komunikaty naprawcze
     if not os.path.exists(WORKERS_DIR):
         os.makedirs(WORKERS_DIR)
 
@@ -85,16 +77,15 @@ def setup_workers(workers_count):
             print(f"  -> Przygotowuję Workera {i} (Klonowanie plików gry)...")
             shutil.copytree(
                 GOLDEN_MASTER_DIR, worker_path,
-                symlinks=False,  # Kopiujemy twarde pliki modyfikacji, eliminując błąd uprawnień 1314
+                symlinks=False,
                 ignore_dangling_symlinks=True,
                 ignore=shutil.ignore_patterns('SaveGame', 'Screenshots', 'Campaign')
             )
 
-        # Przygotowanie folderów na logi wewnątrz oficjalnych struktur
         logs_folders = [
-            os.path.join(worker_path, "AI", "Logs"),  # <--- POPRAWIONE (Katalog główny AI)
-            os.path.join(worker_path, "Age2_x1", "Script.AI", "Logs"),  # Główny folder zapisu dla silnika 1.5c
-            os.path.join(worker_path, "Games", "WololoKingdoms", "Script.AI", "Logs")  # <--- WK zostaje bez zmian
+            os.path.join(worker_path, "AI", "Logs"),
+            os.path.join(worker_path, "Age2_x1", "Script.AI", "Logs"),
+            os.path.join(worker_path, "Games", "WololoKingdoms", "Script.AI", "Logs")
         ]
         for logs_dir in logs_folders:
             os.makedirs(logs_dir, exist_ok=True)
@@ -103,7 +94,6 @@ def setup_workers(workers_count):
                 if os.path.isfile(log_path):
                     os.remove(log_path)
 
-
 def run_match_and_evaluate_parallel(workers_count):
     setup_workers(workers_count)
     processes = []
@@ -111,13 +101,12 @@ def run_match_and_evaluate_parallel(workers_count):
 
     population_size = workers_count * BOTS_PER_MATCH
 
-    print(f"[*] Uruchamianie {workers_count} niezależnych instancji dla {population_size} botów...")
+    print(f"[*] Uruchamianie {workers_count} niezależnych instancji dla {population_size} botów (Tryb Cichy)...")
 
     for i in range(1, workers_count + 1):
         worker_dir = os.path.join(WORKERS_DIR, f"Worker_{i}")
         worker_port = BASE_PORT + i
 
-        # Rotacja map ewolucyjnych (od 1 do 50) i ujednolicanie nazwy docelowej
         map_id = random.randint(1, 50)
         source_map = os.path.join(GOLDEN_MASTER_DIR, "Scenario", f"TestEvo_{map_id}.scx")
 
@@ -132,11 +121,7 @@ def run_match_and_evaluate_parallel(workers_count):
                 shutil.copyfile(source_map, dest_map)
 
         cwd_path = os.path.join(worker_dir, "Age2_x1")
-
-        worker_exe = os.path.join(
-            cwd_path,
-            "age2_x1.5.exe"
-        )
+        worker_exe = os.path.join(cwd_path, "age2_x1.5.exe")
 
         cmd = [
             WITHDLL_PATH,
@@ -150,41 +135,25 @@ def run_match_and_evaluate_parallel(workers_count):
             "-no-desktop-resolution",
             "-ai-log",
             "-AILog",
-            #"-load", "TestEvo",
             "-autogameport", str(worker_port)
         ]
 
-        cwd_path = os.path.join(worker_dir, "Age2_x1")
-
-        print(f"[DEBUG] cwd_path = {cwd_path}")
-        print(f"[DEBUG] worker_exe = {worker_exe}")
-        print(f"[DEBUG] worker_exe = {worker_exe}")
-
-        full_exe_path = os.path.join(cwd_path, worker_exe)
-
-        print(f"[DEBUG] full_exe_path = {full_exe_path}")
-        print(f"[DEBUG] EXISTS? {os.path.exists(full_exe_path)}")
-
-        p = subprocess.Popen(cmd, cwd=cwd_path)
+        # [NOWE] Usunięte printy [DEBUG]. Przekierowanie strumieni z withdll.exe w próżnię, żeby nie śmieciło konsoli.
+        p = subprocess.Popen(cmd, cwd=cwd_path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         processes.append((i, p))
         rpc_clients.append((i, worker_port))
 
         time.sleep(0.05)
 
-    print("[*] Oczekiwanie na uruchomienie pętli silników w oknach (8 sekund)...")
+    print("[*] Oczekiwanie na inicjalizację i nawiązanie połączeń RPC...")
     time.sleep(0.2)
-
     arrange_windows(workers_count)
 
-    print("[*] Przejmowanie sieciowej kontroli - Wielowątkowy zrzut rozkazów...")
-
-    # [NOWE] Zamykamy logikę konfiguracji w funkcji, aby móc odpalić ją równolegle
     def configure_worker(worker_id, port):
         try:
-            client = msgpackrpc.Client(msgpackrpc.Address("127.0.0.1", port))
-
+            client = msgpackrpc.Client(msgpackrpc.Address("127.0.0.1", port), timeout=10)
             connection_established = False
-            for attempt in range(100):  # 10 sekund marginesu
+            for attempt in range(100):
                 try:
                     client.call('GetGameTime')
                     connection_established = True
@@ -193,59 +162,56 @@ def run_match_and_evaluate_parallel(workers_count):
                     time.sleep(0.1)
 
             if not connection_established:
-                print(f"  [!] CRASH: Worker {worker_id} nie otworzył portu {port} na czas.")
                 return
-
-            print(f"RPC OK dla Portu {port} - Serwer połączony!")
 
             client.call('ResetGameSettings')
             client.call('SetGameType', 3)
             client.call('SetGameScenarioName', 'TestEvo')
 
+            # [NOWE] Dławienie zapytań RPC (Throttling) chroniące przed gubieniem pakietów
             for bot_slot in range(1, 9):
                 client.call('SetPlayerComputer', bot_slot, f"Milibot_Evo_{bot_slot}")
+                time.sleep(0.02)  # Dajemy silnikowi 20 milisekund na przetworzenie komendy!
 
             client.call('SetRunFullSpeed', True)
             client.call('SetRunUnfocused', True)
             client.call('SetUseInGameResolution', False)
 
-            # Komenda startu - teraz każdy wątek czeka niezależnie!
+            time.sleep(0.05)
             client.call('StartGame')
 
-            print(f"  -> Worker {worker_id} (Port {port}): Konfiguracja zakończona. Symulacja rusza!")
         except Exception as e:
-            print(f"  [!] Błąd logiki RPC dla Workera {worker_id} na porcie {port}: {e}")
+            pass # Tryb cichy - ignorujemy błędy komunikacji pobocznej
 
-    # [NOWE] Uruchamianie wątków uderzeniowych
     threads = []
     for worker_id, port in rpc_clients:
         t = threading.Thread(target=configure_worker, args=(worker_id, port))
         threads.append(t)
         t.start()
 
-    # Czekamy ułamek sekundy, aż wszystkie wątki skończą inicjalizację
     for t in threads:
-        t.join()
+        t.join(timeout=15)
 
-    print("[*] Wszystkie instancje odłączone od czasu rzeczywistego. Trwa ewolucja.")
-
-    # [NOWE] Kontrolne kliknięcie ubezpieczające (Zero opóźnień time.sleep!)
-    print("[*] Wykonuję awaryjne wybudzanie okien (Sweep)...")
+    print("[*] Start symulacji zsynchronizowany. Trwa ewolucja...")
     emergency_wake_up()
 
-    # [NOWE] Globalny słownik trzymający wyniki z RAM-u
-    all_workers_results = {i: [0] * BOTS_PER_MATCH for i in range(1, workers_count + 1)}
+    # [NAPRAWIONE] Domyślne wartości jako pełne słowniki, by uniknąć błędu TypeError przy Crashu
+    all_workers_results = {
+        i: [{'base': 0, 'bonus': 0, 'penalty': 0, 'mil': 0, 'age': 0, 'exp': 0, 'win': 0, 'tech': 0, 'lose_tc': 0} for _
+            in range(BOTS_PER_MATCH)]
+        for i in range(1, workers_count + 1)
+    }
 
-    # Tworzymy obiekty klientów RPC dla wszystkich procesów
     active_workers = []
     for worker_id, port in rpc_clients:
-        client = msgpackrpc.Client(msgpackrpc.Address("127.0.0.1", port))
+        client = msgpackrpc.Client(msgpackrpc.Address("127.0.0.1", port), timeout=5)
         active_workers.append({
             'id': worker_id,
             'client': client,
             'process': processes[worker_id - 1][1],
             'has_started': False,
-            'loading_start': time.time()
+            'loading_start': time.time(),
+            'last_radar_print': 0  # [NOWE] Zmienna śledząca czas dla radaru
         })
 
     start_real_time = time.time()
@@ -264,36 +230,140 @@ def run_match_and_evaluate_parallel(workers_count):
                 in_progress = client.call('GetGameInProgress')
                 game_time = client.call('GetGameTime')
 
-                # Faza 1: Ekran ładowania
                 if not worker['has_started']:
                     if in_progress or game_time > 0:
                         worker['has_started'] = True
-                        print(f"[Radar] Worker {w_id} załadował mapę! Silnik ruszył.")
                     elif time.time() - worker['loading_start'] > 60:
                         print(f"  [!] Worker {w_id} zawiesił się na ładowaniu. Ubijam.")
                         p.kill()
                         active_workers.remove(worker)
 
-                # Faza 2: Radar
                 else:
-                    print(f"[Radar] Worker {w_id} | W grze: {in_progress} | Czas gry: {game_time} sekund")
+                    # [NOWE] Throttle radaru: raportuje tylko co 300 sekund wewnątrz gry
+                    if game_time - worker['last_radar_print'] >= 300:
+                        print(f"  [Radar] Worker {w_id} | Czas gry: {game_time} sek.")
+                        worker['last_radar_print'] = game_time
 
-                    # [PRZEŁOM] Jeśli boty zrobiły resign lub minął czas - rwiemy dane przez RPC!
                     if not in_progress or game_time > MATCH_DURATION + 10:
-                        print(f"[*] Worker {w_id} zakończył mecz! Pobieram punkty z RAM-u...")
+                        print(f"[*] Worker {w_id} zakończył mecz! Wyciągam punkty...")
 
                         scores = []
                         for slot in range(1, BOTS_PER_MATCH + 1):
                             try:
-                                score = client.call('GetPlayerScore', slot)
-                                scores.append(score)
+                                # 1. Wynik ogólny
+                                base_score = client.call('GetPlayerScore', slot)
+
+                                # 2. Odczyt logów telemetrycznych (Kuloodporny)
+                                max_mil = 0
+                                max_age = 0
+                                max_exp = 0
+                                win_flag = 0
+                                lose_tc = 0
+                                tec_blk = 0
+                                tec_uni = 0
+                                tec_cst = 0
+                                tec_mar = 0
+                                tec_mon = 0  # <--- TEGO BRAKOWAŁO
+                                max_relics = 0  # <--- TEGO BRAKOWAŁO
+
+                                worker_dir = os.path.join(WORKERS_DIR, f"Worker_{w_id}")
+                                active_log = None
+
+                                for root_dir, _, files in os.walk(worker_dir):
+                                    for file in files:
+                                        if file.endswith(".txt"):
+                                            test_path = os.path.join(root_dir, file)
+                                            try:
+                                                with open(test_path, "rb") as f:
+                                                    content = f.read().replace(b'\x00', b'').decode('utf-8', errors='ignore')
+                                                    if f"SLOT:{slot}|" in content:
+                                                        active_log = test_path
+                                                        for line in content.splitlines():
+                                                            if f"SLOT:{slot}|TEC_MON:" in line:
+                                                                try:
+                                                                    tec_mon = max(tec_mon, int(
+                                                                        line.split(f"SLOT:{slot}|TEC_MON:")[1].strip()))
+                                                                except:
+                                                                    pass
+                                                            if f"SLOT:{slot}|RELIC_C:" in line:
+                                                                try:
+                                                                    max_relics = max(max_relics, int(
+                                                                        line.split(f"SLOT:{slot}|RELIC_C:")[1].strip()))
+                                                                except:
+                                                                    pass
+                                                            if f"SLOT:{slot}|MIL:" in line:
+                                                                try: max_mil = max(max_mil, int(line.split(f"SLOT:{slot}|MIL:")[1].strip()))
+                                                                except: pass
+                                                            if f"SLOT:{slot}|AGE:" in line:
+                                                                try: max_age = max(max_age, int(line.split(f"SLOT:{slot}|AGE:")[1].strip()))
+                                                                except: pass
+                                                            if f"SLOT:{slot}|EXP:" in line:
+                                                                try: max_exp = max(max_exp, int(line.split(f"SLOT:{slot}|EXP:")[1].strip()))
+                                                                except: pass
+
+                                                            # [NOWE] Budynki (Czytamy dynamicznie, tak samo jak MIL!)
+                                                            if f"SLOT:{slot}|TEC_BLK:" in line:
+                                                                try: tec_blk = max(tec_blk, int(line.split(f"SLOT:{slot}|TEC_BLK:")[1].strip()))
+                                                                except: pass
+                                                            if f"SLOT:{slot}|TEC_UNI:" in line:
+                                                                try: tec_uni = max(tec_uni, int(line.split(f"SLOT:{slot}|TEC_UNI:")[1].strip()))
+                                                                except: pass
+                                                            if f"SLOT:{slot}|TEC_CST:" in line:
+                                                                try: tec_cst = max(tec_cst, int(line.split(f"SLOT:{slot}|TEC_CST:")[1].strip()))
+                                                                except: pass
+                                                            if f"SLOT:{slot}|TEC_MAR:" in line:
+                                                                try: tec_mar = max(tec_mar, int(line.split(f"SLOT:{slot}|TEC_MAR:")[1].strip()))
+                                                                except: pass
+
+                                                            if f"SLOT:{slot}|WIN:" in line: win_flag = 1
+                                                            if f"SLOT:{slot}|LOSE_TC:1" in line: lose_tc = 1
+                                                        break
+                                            except Exception:
+                                                pass
+                                    if active_log:
+                                        break
+
+                                if not active_log:
+                                    print(f"  [UWAGA] Radar nie znalazł telemetrii dla slota {slot}!")
+
+                                # [NOWE] Zabezpieczenie przed farmieniem (Capping na 1)
+                                # Jeśli bot zbuduje 5 Rynków, to tec_mar i tak wyniesie 1, dając nagrodę tylko raz!
+                                tec_blk = min(1, tec_blk)
+                                tec_uni = min(1, tec_uni)
+                                tec_cst = min(1, tec_cst)
+                                tec_mar = min(1, tec_mar)
+                                tec_mon = min(1, tec_mon)  # <--- TEGO ZABEZPIECZENIA BRAKOWAŁO
+
+                                # Zliczamy Klasztor (+600) oraz Czas Relikwii (0.2 pkt za każdego "ticka" czasu - 10 min 1 relikwii to ok. +1200 pkt)
+                                bonus_score = (max_mil * 1) + (max_age * max_age * 250) + (max_exp * 20) + (
+                                            tec_blk * 100) + (tec_uni * 300) + (tec_cst * 1000) + (tec_mar * 1000) + (
+                                                          tec_mon * 300) + (max_relics * 1000) + (win_flag * 5000)
+                                penalty_score = lose_tc * 5000
+
+                                scores.append({
+                                    'base': base_score,
+                                    'bonus': bonus_score,
+                                    'penalty': penalty_score,
+                                    'mil': max_mil,
+                                    'age': max_age,
+                                    'exp': max_exp,
+                                    'win': win_flag,
+                                    'tech': tec_blk + tec_uni + tec_cst + tec_mar + tec_mon,
+                                    'lose_tc': lose_tc
+                                })
+
+
                             except Exception:
-                                scores.append(0)
+
+                                # [NAPRAWIONE] Kompletny słownik ratunkowy
+
+                                scores.append(
+                                    {'base': 0, 'bonus': 0, 'penalty': 0, 'mil': 0, 'age': 0, 'exp': 0, 'win': 0,
+                                     'tech': 0, 'lose_tc': 0})
 
                         all_workers_results[w_id] = scores
-                        print(f"  -> Wyniki Workera {w_id}: {scores}")
+                        print(f"  -> Wyniki Workera {w_id}: pobrano pakiet danych telemetrycznych.")
 
-                        # [NOWE] Błyskawiczna egzekucja procesu z pominięciem procedur silnika
                         try:
                             p.kill()
                         except Exception:
@@ -307,20 +377,15 @@ def run_match_and_evaluate_parallel(workers_count):
 
         time.sleep(0.3)
 
-    # Sprzątanie okien bez opóźnień
     for worker_id, p in processes:
         try:
             p.kill()
         except:
             pass
 
-    print("[*] Twardy reset procesów gry na koniec generacji...")
     os.system("taskkill /F /IM age2_x1.5.exe >nul 2>&1")
     os.system("taskkill /F /IM withdll.exe >nul 2>&1")
 
-    print("[*] Zakończono generację. Przetwarzanie wyników...")
-
-    # [NOWE] Zbieranie odczytanych punktów do jednej listy
     all_raw_scores = []
     for i in range(1, workers_count + 1):
         all_raw_scores.extend(all_workers_results[i])

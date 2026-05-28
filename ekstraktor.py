@@ -7,7 +7,7 @@ maxInt = 2147483647
 csv.field_size_limit(maxInt)
 
 input_file = 'historia_ewolucji.csv'  # Upewnij się, że nazwa się zgadza
-output_file = 'ostatnia_generacja.csv'
+output_file = 'historia_ewolucji.csv'
 
 print(f"[*] Skanowanie pliku {input_file} w poszukiwaniu najnowszej generacji (to potrwa chwilę)...")
 

@@ -48,7 +48,7 @@ with open(INPUT_FILE, 'r', encoding='utf-8') as f:
             continue
 
         wierszy_przetworzono += 1
-        if wierszy_przetworzono % 50000 == 0:
+        if wierszy_przetworzono % 5000 == 0:
             print(f"  ... przetworzono już {wierszy_przetworzono} botów ...")
 
         stats[gen]['scores'].append(score)

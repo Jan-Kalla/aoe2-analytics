@@ -5,17 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="31fba216-a6d1-44f0-9e1b-9bc693168ee4" name="Changes" comment="first_model_acc15">
-      <change afterPath="$PROJECT_DIR$/ekstraktor.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/generator_wykresow.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/migrate_csv.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/usuwacz.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backup_1779272201_historia_ewolucji.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/economy_primitives.py" beforeDir="false" afterPath="$PROJECT_DIR$/economy_primitives.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ekstraktor.py" beforeDir="false" afterPath="$PROJECT_DIR$/ekstraktor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/generator_wykresow.py" beforeDir="false" afterPath="$PROJECT_DIR$/generator_wykresow.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/genetic_engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/genetic_engine.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/historia_backup_1779064016.csv" beforeDir="false" afterPath="$PROJECT_DIR$/historia_backup_1779064016.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/historia_ewolucji.csv" beforeDir="false" afterPath="$PROJECT_DIR$/historia_ewolucji.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/historia_ewolucji_BACKUP.csv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/military_primitives.py" beforeDir="false" afterPath="$PROJECT_DIR$/military_primitives.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ostatnia_generacja.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/simulation_runner.py" beforeDir="false" afterPath="$PROJECT_DIR$/simulation_runner.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tactics_primitives.py" beforeDir="false" afterPath="$PROJECT_DIR$/tactics_primitives.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wykres_1_punkty.png" beforeDir="false" afterPath="$PROJECT_DIR$/wykres_1_punkty.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wykres_2_puchniecie.png" beforeDir="false" afterPath="$PROJECT_DIR$/wykres_2_puchniecie.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wykres_3_gospodarka.png" beforeDir="false" afterPath="$PROJECT_DIR$/wykres_3_gospodarka.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wykres_4_wojsko.png" beforeDir="false" afterPath="$PROJECT_DIR$/wykres_4_wojsko.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wykres_5_parametry_dynamiczne.png" beforeDir="false" afterPath="$PROJECT_DIR$/wykres_5_parametry_dynamiczne.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wykres_6_technologie.png" beforeDir="false" afterPath="$PROJECT_DIR$/wykres_6_technologie.png" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,46 +63,48 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.auto_evolution.executor": "Run",
-    "Python.bot_manager.executor": "Run",
-    "Python.clean_data.executor": "Run",
-    "Python.config.executor": "Run",
-    "Python.diagnostic_radar.executor": "Run",
-    "Python.ekstraktor.executor": "Run",
-    "Python.find_mouse.executor": "Run",
-    "Python.generator_wykresow.executor": "Run",
-    "Python.genetic_engine.executor": "Run",
-    "Python.genetic_grammar.executor": "Run",
-    "Python.genetic_optimizer.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.merge_replays.executor": "Run",
-    "Python.migracja_csv.executor": "Run",
-    "Python.simulation_runner.executor": "Run",
-    "Python.starcie_epok.executor": "Run",
-    "Python.tactics_primitives.executor": "Run",
-    "Python.test_ocr.executor": "Run",
-    "Python.train_model.executor": "Run",
-    "Python.vision_rpa.executor": "Run",
-    "Python.wykres.executor": "Run",
-    "Python.znajdz_log.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "D:/PyCharm 2025.1.1.1/aoe2-analytics/replays",
-    "settings.editor.selected.configurable": "preferences.fileTypes"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.auto_evolution.executor&quot;: &quot;Run&quot;,
+    &quot;Python.bot_manager.executor&quot;: &quot;Run&quot;,
+    &quot;Python.clean_data.executor&quot;: &quot;Run&quot;,
+    &quot;Python.config.executor&quot;: &quot;Run&quot;,
+    &quot;Python.diagnostic_radar.executor&quot;: &quot;Run&quot;,
+    &quot;Python.ekstraktor.executor&quot;: &quot;Run&quot;,
+    &quot;Python.find_mouse.executor&quot;: &quot;Run&quot;,
+    &quot;Python.generator_wykresow.executor&quot;: &quot;Run&quot;,
+    &quot;Python.genetic_engine.executor&quot;: &quot;Run&quot;,
+    &quot;Python.genetic_grammar.executor&quot;: &quot;Run&quot;,
+    &quot;Python.genetic_optimizer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.merge_replays.executor&quot;: &quot;Run&quot;,
+    &quot;Python.migracja_csv.executor&quot;: &quot;Run&quot;,
+    &quot;Python.migrate_csv.executor&quot;: &quot;Run&quot;,
+    &quot;Python.simulation_runner.executor&quot;: &quot;Run&quot;,
+    &quot;Python.starcie_epok.executor&quot;: &quot;Run&quot;,
+    &quot;Python.tactics_primitives.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test_ocr.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_model.executor&quot;: &quot;Run&quot;,
+    &quot;Python.usuwacz.executor&quot;: &quot;Run&quot;,
+    &quot;Python.vision_rpa.executor&quot;: &quot;Run&quot;,
+    &quot;Python.wykres.executor&quot;: &quot;Run&quot;,
+    &quot;Python.znajdz_log.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/PyCharm 2025.1.1.1/aoe2-analytics/replays&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.fileTypes&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\PyCharm 2025.1.1.1\aoe2-analytics\replays" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\PyCharm 2025.1.1.1\aoe2-analytics" />
       <recent name="D:\PyCharm 2025.1.1.1\aoe2-analytics\Milibot_Files" />
       <recent name="D:\PyCharm 2025.1.1.1\aoe2-analytics\replays" />
-      <recent name="D:\PyCharm 2025.1.1.1\aoe2-analytics" />
     </key>
   </component>
   <component name="SharedIndexes">
